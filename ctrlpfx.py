@@ -16,6 +16,7 @@ HOMEASN = 47065
 PREFIXES = range(236, 256)
 MUX2IP = dict()
 
+
 def poison(prefix, mux, poisonv, homeasn=HOMEASN): # {{{
     mux = mux.upper()
     assert mux in MUX2IP
@@ -136,11 +137,14 @@ def _create_parser(): # {{{
             sys.stderr.write('or multiple muxes specified\n')
             sys.exit(1)
         value = value.upper()
-        if value not in MUX2IP:
+        if value == 'ALL':
+            setattr(parser.values, option.dest, list(MUX2IP.keys()))
+        elif value not in MUX2IP:
             sys.stderr.write('mux %s is unknown:\n' % value)
             sys.stderr.write(' '.join(MUX2IP.keys()) + '\n')
             sys.exit(1)
-        setattr(parser.values, option.dest, value)
+        else:
+            setattr(parser.values, option.dest, [value])
     # }}}
     def set_operation(option, optstr, value, parser): # {{{
         if getattr(parser.values, option.dest) is not None:
@@ -170,7 +174,7 @@ def _create_parser(): # {{{
 
 
     usage = 'usage: ctrlpfx.py --prefix=PREFIX --mux=NAME|--pfx2mux=FILE\n' +\
-            '                  --poison=PREPEND|--unpoison|--withdraw'
+            '                  --poison=PREPEND|--unpoison|--withdraw|--unchanged'
     usage += ' [options]'
     parser = OptionParser(usage=usage)
 
@@ -191,12 +195,12 @@ def _create_parser(): # {{{
             help='3rd byte of prefix to control (e.g., 240)')
 
     parser.add_option('--mux',
-            dest='mux',
+            dest='muxes',
             metavar='NAME',
             action='callback',
             callback=check_mux,
             nargs=1, type='str',
-            help='mux name to control (e.g., CLEMSON)')
+            help='mux name to control (e.g., CLEMSON), or ALL')
 
     parser.add_option('--pfx2mux',
             dest='pfx2mux',
@@ -234,6 +238,13 @@ def _create_parser(): # {{{
             callback=set_operation,
             nargs=0,
             help='withdraw PREFIX')
+
+    parser.add_option('--unchanged',
+            dest='op',
+            action='callback',
+            callback=set_operation,
+            nargs=0,
+            help='keep announcement unchanged (useful to force soft-reset)')
 
     parser.add_option('--logfile',
             dest='logfile',
@@ -306,18 +317,28 @@ def _main(): # {{{
     loghandler.setFormatter(formatter)
     logger.addHandler(loghandler)
 
-    if opts.op == '--poison':
-        poison(opts.prefix, opts.mux, opts.poison)
-    elif opts.op == '--unpoison':
-        unpoison(opts.prefix, opts.mux)
-    elif opts.op == '--withdraw':
-        withdraw(opts.prefix, opts.mux)
-    else:
-        sys.stderr.write('unknown operation, aborting.\n')
-        sys.exit(1)
+    for mux in opts.muxes:
+        if opts.op == '--poison':
+            poison(opts.prefix, mux, opts.poison)
+            if opts.noreset: continue
+            soft_reset(mux)
+        elif opts.op == '--unpoison':
+            unpoison(opts.prefix, mux)
+            if opts.noreset: continue
+            soft_reset(mux)
+        elif opts.op == '--withdraw':
+            withdraw(opts.prefix, mux)
+            if opts.noreset: continue
+            soft_reset(mux)
+        elif opts.op == '--unchanged':
+            if opts.noreset:
+                sys.stderr.write('--unchanged and --no-soft-reset do nothing')
+                continue
+            soft_reset(mux)
+        else:
+            sys.stderr.write('unknown operation, aborting.\n')
+            sys.exit(1)
 
-    if opts.noreset: return
-    soft_reset(opts.mux)
 # }}}
 
 
