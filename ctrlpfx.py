@@ -132,7 +132,7 @@ def _create_parser(): # {{{
             setattr(parser.values, 'mux', pfx2mux[value])
     # }}}
     def check_mux(option, _optstr, value, parser): # {{{
-        if getattr(parser.values, 'mux') is not None:
+        if getattr(parser.values, option.dest) is not None:
             sys.stderr.write('cannot have --mux and --pfx2mux,\n')
             sys.stderr.write('or multiple muxes specified\n')
             sys.exit(1)
