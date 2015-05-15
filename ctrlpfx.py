@@ -274,7 +274,7 @@ def _create_parser(): # {{{
 
     parser.add_option('--no-soft-reset',
             dest='noreset',
-            action='store_false',
+            action='store_true',
             default=False,
             help='skip soft reset after config change [default=%default]')
 
