@@ -173,7 +173,7 @@ def _create_parser(): # {{{
     # }}}
 
 
-    usage = 'usage: ctrlpfx.py --prefix=PREFIX --mux=NAME|--pfx2mux=FILE\n' +\
+    usage = 'usage: ctrlpfx.py --database=SQLITE3 --prefix=PREFIX --mux=NAME|--pfx2mux=FILE\n' +\
             '                  --poison=PREPEND|--unpoison|--withdraw|--unchanged'
     usage += ' [options]'
     parser = OptionParser(usage=usage)
