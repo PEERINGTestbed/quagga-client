@@ -13,7 +13,7 @@ from optparse import OptionParser
 import announce
 
 HOMEASN = 47065
-PREFIXES = range(240, 256)
+PREFIXES = range(236, 256)
 MUX2IP = dict()
 
 def poison(prefix, mux, poisonv, homeasn=HOMEASN): # {{{
