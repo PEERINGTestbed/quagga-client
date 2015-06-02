@@ -141,7 +141,10 @@ def _create_parser(): # {{{
             setattr(parser.values, option.dest, list(MUX2IP.keys()))
         elif value not in MUX2IP:
             sys.stderr.write('mux %s is unknown:\n' % value)
-            sys.stderr.write(' '.join(MUX2IP.keys()) + '\n')
+            if not MUX2IP:
+                sys.stderr.write('MUX2IP is empty; load database first?\n')
+            else:
+                sys.stderr.write(' '.join(MUX2IP.keys()) + '\n')
             sys.exit(1)
         else:
             setattr(parser.values, option.dest, [value])
