@@ -305,7 +305,7 @@ def _main(): # {{{
         parser.parse_args(['-h'])
 
     if not set(MUX2IP.keys()).issuperset(set(opts.muxes)):
-        sys.stderr.write('unknown muxes detected: %s\n' % ' '.join(opts.mux))
+        sys.stderr.write('unknown muxes detected: %s\n' % ' '.join(opts.muxes))
         sys.stderr.write('known muxes: %s\n' % ' '.join(MUX2IP.keys()))
         sys.exit(1)
 
