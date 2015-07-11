@@ -23,7 +23,6 @@ def poison(prefix, mux, poisonv, homeasn=HOMEASN): # {{{
     assert prefix in PREFIXES
     assert isinstance(poisonv, announce.Announce)
     assert isinstance(homeasn, int)
-    # tstamp = int(time.time())
     # poison_string = str(poisonv)
     prepend_string = str(poisonv)
     # prepend_string = '%s %d' % (poison_string, homeasn)
@@ -32,8 +31,8 @@ def poison(prefix, mux, poisonv, homeasn=HOMEASN): # {{{
     cmd += '-c "set as-path prepend %s"' % prepend_string
     reliable_exec(cmd, 3)
     _prefix_up(prefix, mux, prepend_string)
-    # logging.info('ctrlpfx %d 184.164.%d.0/24 %s %s %s', tstamp,
-    #       prefix, mux, 'announced', prepend_string)
+    logging.debug('ctrlpfx %d 184.164.%d.0/24 %s %s %s', int(time.time()),
+                  prefix, mux, 'poison', prepend_string)
 # }}}
 
 
@@ -41,11 +40,10 @@ def unpoison(prefix, mux): # {{{
     mux = mux.upper()
     assert mux in MUX2IP, '%s %s' % (mux, MUX2IP)
     assert prefix in PREFIXES, '%s %s' % (prefix, PREFIXES)
-    # tstamp = int(time.time())
     _reset_route_map(prefix, mux)
     _prefix_up(prefix, mux, 'noprepend')
-    # logging.info('ctrlpfx %d 184.164.%d.0/24 %s %s %s', tstamp,
-    #       prefix, mux, 'announced', 'no-prepend')
+    logging.debug('ctrlpfx %d 184.164.%d.0/24 %s %s %s', int(time.time()),
+                  prefix, mux, 'announced', 'no-prepend')
 # }}}
 
 
@@ -54,14 +52,13 @@ def withdraw(prefix, mux): # {{{
     assert mux in MUX2IP
     assert prefix in PREFIXES
     _reset_route_map(prefix, mux)
-    # tstamp = int(time.time())
     logging.info('prefix down %d %s', prefix, mux)
     cmd = 'vtysh -d bgpd -c "config terminal" '
     cmd += '-c "route-map %s permit %d" ' % (mux, prefix)
     cmd += '-c "match ip address prefix-list NONET"'
     reliable_exec(cmd, 3)
-    # logging.info('ctrlpfx %d 184.164.%d.0/24 %s %s %s', tstamp,
-    #       prefix, mux, 'withdrawn', 'no-prepend')
+    logging.debug('ctrlpfx %d 184.164.%d.0/24 %s %s %s', int(time.time()),
+                  prefix, mux, 'withdrawn', 'no-prepend')
 # }}}
 
 
@@ -69,22 +66,21 @@ def soft_reset(mux): # {{{
     mux = mux.upper()
     assert mux in MUX2IP
     neighbor = MUX2IP[mux]
-    # tstamp = int(time.time())
-    # logging.info('soft_reset %s %s', mux, tstamp)
+    logging.debug('soft_reset %s %d', mux, int(time.time()))
     cmd = 'vtysh -d bgpd -c "clear ip bgp %s soft out"' % neighbor
     reliable_exec(cmd, 3)
 # }}}
 
 
 def reliable_exec(cmd, maxerrors, wait_time=20): # {{{
-    # logging.info(cmd)
+    logging.debug('# %s', cmd)
     errors = 0
     r = os.system(cmd)
     while r != 0:
         errors += 1
         if errors > maxerrors:
-            logging.info('tried running %s (%d times) but failed', cmd,
-                    maxerrors)
+            logging.debug('tried running %s (%d times) but failed', cmd,
+                          maxerrors)
             assert False
         time.sleep(wait_time)
         r = os.system(cmd)
@@ -109,7 +105,9 @@ def load_mux2ip_from_database(filename):# {{{
     curr = conn.cursor()
     result = curr.execute('select number, name from portal_server')
     for number, name in result:
-        MUX2IP[name.upper()] = "10.%d.0.1" % (192 + number)
+        addr = "10.%d.0.1" % (192 + number)
+        MUX2IP[name.upper()] = addr
+        logging.debug('loaded mux %s as %s', name.upper(), addr)
     conn.close()
 # }}}
 
@@ -249,6 +247,13 @@ def _create_parser(): # {{{
             default='log.txt',
             help='file to use for logging [default=%default]')
 
+    parser.add_option('--debuglog',
+            dest='loglevel',
+            default=logging.INFO,
+            action='store_const',
+            const=logging.DEBUG,
+            help='log more information (useful for debugging)')
+
     parser.add_option('--bgprouter',
             dest='bgprouter',
             metavar='INT',
@@ -289,7 +294,7 @@ def _prefix_up(prefix, mux, message): # {{{
 
 
 def _reset_route_map(prefix, mux): # {{{
-    # logging.info('resetting route-map %s permit %d', mux, prefix)
+    logging.debug('resetting route-map %s permit %d', mux, prefix)
     cmd = 'vtysh -d bgpd -c "config terminal" '
     cmd += '-c "route-map %s permit %d" ' % (mux, prefix)
     cmd += '-c "set as-path prepend 1" '
@@ -312,7 +317,8 @@ def _main(): # {{{
     resource.setrlimit(resource.RLIMIT_AS, (2147483648L, 2147483648L))
 
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.handlers = []
+    logger.setLevel(opts.loglevel)
     formatter = logging.Formatter('%(message)s')
     loghandler = logging.handlers.RotatingFileHandler(opts.logfile,
             maxBytes=128*1024*1024, backupCount=5)
