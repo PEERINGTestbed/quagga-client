@@ -244,8 +244,8 @@ def _create_parser(): # {{{
     parser.add_option('--logfile',
             dest='logfile',
             metavar='FILE',
-            default='log.txt',
-            help='file to use for logging [default=%default]')
+            default='stderr',
+            help='log to a file [default=%default]')
 
     parser.add_option('--debuglog',
             dest='loglevel',
@@ -320,8 +320,11 @@ def _main(): # {{{
     logger.handlers = []
     logger.setLevel(opts.loglevel)
     formatter = logging.Formatter('%(message)s')
-    loghandler = logging.handlers.RotatingFileHandler(opts.logfile,
-            maxBytes=128*1024*1024, backupCount=5)
+    if opts.logfile == 'stderr':
+        loghandler = logging.StreamHandler()
+    else:
+        loghandler = logging.handlers.RotatingFileHandler(opts.logfile,
+                maxBytes=128*1024*1024, backupCount=5)
     loghandler.setFormatter(formatter)
     logger.addHandler(loghandler)
 
