@@ -139,12 +139,9 @@ def _create_parser(): # {{{
         value = value.upper()
         if value == 'ALL':
             setattr(parser.values, option.dest, list(MUX2IP.keys()))
-        elif value not in MUX2IP:
-            sys.stderr.write('mux %s is unknown:\n' % value)
-            sys.stderr.write(' '.join(MUX2IP.keys()) + '\n')
-            sys.exit(1)
         else:
             setattr(parser.values, option.dest, [value])
+
     # }}}
     def set_operation(option, optstr, value, parser): # {{{
         if getattr(parser.values, option.dest) is not None:
@@ -306,6 +303,11 @@ def _main(): # {{{
     opts, _args = parser.parse_args()
     if opts.prefix is None or opts.op is None or opts.database is None:
         parser.parse_args(['-h'])
+
+    if not set(MUX2IP.keys()).issuperset(set(opts.mux)):
+        sys.stderr.write('unknown muxes detected: %s\n' % ' '.join(opts.mux))
+        sys.stderr.write('known muxes: %s\n' % ' '.join(MUX2IP.keys()))
+        sys.exit(1)
 
     resource.setrlimit(resource.RLIMIT_AS, (2147483648L, 2147483648L))
 
