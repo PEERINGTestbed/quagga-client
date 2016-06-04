@@ -7,7 +7,6 @@ import resource
 import time
 import logging
 import logging.handlers
-import sqlite3
 from optparse import OptionParser
 
 import announce
@@ -100,23 +99,15 @@ def deploy(prefix, pfxannounce):#{{{
 #}}}
 
 
-def load_mux2ip_from_database(filename):# {{{
-    conn = sqlite3.connect(filename)
-    curr = conn.cursor()
-    result = curr.execute('select number, name from portal_server')
-    for number, name in result:
-        addr = "10.%d.0.1" % (192 + number)
-        MUX2IP[name.upper()] = addr
-        logging.debug('loaded mux %s as %s', name.upper(), addr)
-    conn.close()
-# }}}
-
-
 def _create_parser(): # {{{
     # pylint: disable=R0912
 
-    def load_database(option, _optstr, value, parser): # {{{
-        load_mux2ip_from_database(value)
+    def load_mux2ip(option, _optstr, value, parser): # {{{
+        with open(value, 'r') as fd:
+            for line in fd:
+                name, addr = line.split()
+                MUX2IP[name.upper()] = addr
+                logging.debug('loaded mux %s as %s', name.upper(), addr)
         setattr(parser.values, option.dest, MUX2IP)
     # }}}
     def check_prefix(option, _optstr, value, parser): # {{{
@@ -168,18 +159,18 @@ def _create_parser(): # {{{
     # }}}
 
 
-    usage = 'usage: ctrlpfx.py --database=SQLITE3 --prefix=PREFIX --mux=NAME|--pfx2mux=FILE\n' +\
+    usage = 'usage: ctrlpfx.py --mux2ip=FILE --prefix=PREFIX --mux=NAME|--pfx2mux=FILE\n' +\
             '                  --poison=PREPEND|--unpoison|--withdraw|--unchanged'
     usage += ' [options]'
     parser = OptionParser(usage=usage)
 
-    parser.add_option('--database',
+    parser.add_option('--mux2ip',
             dest='database',
             metavar='DBFILE',
             action='callback',
-            callback=load_database,
+            callback=load_mux2ip,
             nargs=1, type='str',
-            help='database file')
+            help='file mapping muxes to IPs')
 
     parser.add_option('--prefix',
             dest='prefix',
