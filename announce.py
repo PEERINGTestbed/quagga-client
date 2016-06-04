@@ -104,7 +104,7 @@ class Announce(object):#{{{
 				self.poisoned.update(e)
 			else:
 				raise TypeError('%s unsupported' % e.__class__)
-		self.poisoned = frozenset(self.poisoned)
+		self.poisoned = frozenset(self.poisoned) # pylint: disable=redefined-variable-type
 
 		if self.poisoned:
 			assert len(set(self.prepend)) > 1
@@ -273,12 +273,9 @@ def test_announce():#{{{
 	assert e == f
 	assert str(f) == '704 {34 35 36} 47065'
 
-	try:
-		f <<= '704 {35 35 36}'
-	except ValueError:
-		pass
-	else:
-		assert False
+	f <<= '704 {35 34 36}'
+	assert e == f
+	assert str(f) == '704 {34 35 36} 47065'
 
 	g = Announce('{704} {705} {45 46} 47065')
 	assert ANNOUNCED in g.status
