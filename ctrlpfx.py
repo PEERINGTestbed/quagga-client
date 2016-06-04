@@ -294,6 +294,22 @@ def _reset_route_map(prefix, mux): # {{{
 # }}}
 
 
+def _initlog(opts): # {{{
+    logger = logging.getLogger()
+    logger.handlers = []
+    logger.setLevel(opts.loglevel)
+    formatter = logging.Formatter('%(message)s')
+    # pylint: disable=redefined-variable-type
+    if opts.logfile == 'stderr':
+        loghandler = logging.StreamHandler()
+    else:
+        loghandler = logging.handlers.RotatingFileHandler(opts.logfile,
+                maxBytes=128*1024*1024, backupCount=5)
+    loghandler.setFormatter(formatter)
+    logger.addHandler(loghandler)
+# }}}
+
+
 def _main(): # {{{
     parser = _create_parser()
     opts, _args = parser.parse_args()
@@ -306,18 +322,6 @@ def _main(): # {{{
         sys.exit(1)
 
     resource.setrlimit(resource.RLIMIT_AS, (2147483648L, 2147483648L))
-
-    logger = logging.getLogger()
-    logger.handlers = []
-    logger.setLevel(opts.loglevel)
-    formatter = logging.Formatter('%(message)s')
-    if opts.logfile == 'stderr':
-        loghandler = logging.StreamHandler()
-    else:
-        loghandler = logging.handlers.RotatingFileHandler(opts.logfile,
-                maxBytes=128*1024*1024, backupCount=5)
-    loghandler.setFormatter(formatter)
-    logger.addHandler(loghandler)
 
     for mux in opts.muxes:
         if opts.op == '--poison':
